@@ -14,10 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+plugins {
+    id("com.github.johnrengelman.shadow")
+    id("java")
+}
+
 dependencies {
     api("org.apiguardian:apiguardian-api")
     api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
+}
+
+tasks.shadowJar {
+    archiveClassifier.set("")
+    dependencies {
+        include(dependency("com.google.guava:guava"))
+        include(dependency("com.google.guava:failureaccess"))
+    }
+    relocate("com.google", "org.apache.calcite.shaded.com.google")
+}
+
+tasks.jar {
+    archiveClassifier.set("default")
+    dependsOn(tasks.shadowJar)
 }

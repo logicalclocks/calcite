@@ -24,6 +24,8 @@ plugins {
     kotlin("jvm")
     id("com.github.vlsi.crlf")
     id("com.github.vlsi.ide")
+    id("com.github.johnrengelman.shadow")
+    id("java")
     calcite.fmpp
     calcite.javacc
 }
@@ -98,12 +100,28 @@ dependencies {
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
-tasks.jar {
+tasks.shadowJar {
+    archiveClassifier.set("")
     CrLfSpec(LineEndings.LF).run {
         into("codegen") {
             textFrom("$projectDir/src/main/codegen")
         }
     }
+    dependencies {
+        include(dependency("com.google.guava:guava"))
+        include(dependency("com.google.guava:failureaccess"))
+    }
+    relocate("com.google", "org.apache.calcite.shaded.com.google")
+}
+
+tasks.jar {
+    archiveClassifier.set("default")
+    CrLfSpec(LineEndings.LF).run {
+        into("codegen") {
+            textFrom("$projectDir/src/main/codegen")
+        }
+    }
+    dependsOn(tasks.shadowJar)
 }
 
 val generatedVersionDir = File(buildDir, "generated/sources/version")

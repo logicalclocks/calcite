@@ -20,6 +20,22 @@ plugins {
     calcite.fmpp
     calcite.javacc
     id("com.github.vlsi.ide")
+    id("com.github.johnrengelman.shadow")
+    id("java")
+}
+
+tasks.shadowJar {
+    archiveClassifier.set("")
+    dependencies {
+        include(dependency("com.google.guava:guava"))
+        include(dependency("com.google.guava:failureaccess"))
+    }
+    relocate("com.google", "org.apache.calcite.shaded.com.google")
+}
+
+tasks.jar {
+    archiveClassifier.set("default")
+    dependsOn(tasks.shadowJar)
 }
 
 dependencies {
