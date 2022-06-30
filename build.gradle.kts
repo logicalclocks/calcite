@@ -286,7 +286,7 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
 }
 
 allprojects {
-    group = "org.apache.calcite"
+    group = "io.hops.calcite"
     version = buildVersion
 
     apply(plugin = "com.github.vlsi.gradle-extensions")
@@ -894,6 +894,15 @@ allprojects {
                             url.set("https://github.com/apache/calcite")
                             tag.set("HEAD")
                         }
+                    }
+                }
+            }
+            repositories {
+                maven {
+                    url = uri("https://archiva.hops.works/repository/Hops/")
+                    credentials {
+                        username = project.findProperty("mavenUser" )as? String
+                        password = project.findProperty("mavenPassword" )as? String
                     }
                 }
             }
