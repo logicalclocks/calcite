@@ -45,7 +45,8 @@ plugins {
     id("net.ltgt.errorprone") apply false
     id("com.github.vlsi.jandex") apply false
     id("org.owasp.dependencycheck")
-    id("com.github.johnrengelman.shadow") apply false
+    id("com.github.johnrengelman.shadow") apply true
+    id("java") apply true
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
     id("com.github.vlsi.ide")
@@ -285,7 +286,7 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
 }
 
 allprojects {
-    group = "org.apache.calcite"
+    group = "io.hops.calcite"
     version = buildVersion
 
     apply(plugin = "com.github.vlsi.gradle-extensions")
@@ -798,7 +799,7 @@ allprojects {
             archives(sourcesJar)
         }
 
-        val archivesBaseName = "calcite-$name"
+        val archivesBaseName = "calcite-$name-shaded-guava-31"
         setProperty("archivesBaseName", archivesBaseName)
 
         configure<PublishingExtension> {
@@ -812,16 +813,22 @@ allprojects {
             }
             publications {
                 create<MavenPublication>(project.name) {
+                    from(components["java"])
                     artifactId = archivesBaseName
                     version = rootProject.version.toString()
                     description = project.description
-                    from(components["java"])
 
                     if (!skipJavadoc) {
                         // Eager task creation is required due to
                         // https://github.com/gradle/gradle/issues/6246
                         artifact(sourcesJar.get())
                         artifact(javadocJar.get())
+                    }
+                    afterEvaluate {
+                        val shadowJar = tasks.findByName("shadowJar")
+                        if (shadowJar != null) {
+                            artifact(shadowJar)
+                        }
                     }
 
                     // Use the resolved versions in pom.xml
@@ -887,6 +894,15 @@ allprojects {
                             url.set("https://github.com/apache/calcite")
                             tag.set("HEAD")
                         }
+                    }
+                }
+            }
+            repositories {
+                maven {
+                    url = uri("https://archiva.hops.works/repository/Hops/")
+                    credentials {
+                        username = project.findProperty("mavenUser" )as? String
+                        password = project.findProperty("mavenPassword" )as? String
                     }
                 }
             }
