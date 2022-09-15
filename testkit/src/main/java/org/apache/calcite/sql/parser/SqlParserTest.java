@@ -4164,6 +4164,95 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testTableFunction() {
+    final String sql = "select * from table(score(table orders))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithPartitionKey() {
+    // test one partition key for input table
+    final String sql = "select * from table(topn(table orders partition by productid, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultiplePartitionKeys() {
+    // test multiple partition keys for input table
+    final String sql =
+        "select * from table(topn(table orders partition by (orderId, productid), 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `ORDERID`, `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithOrderKey() {
+    // test one order key for input table
+    final String sql =
+        "select * from table(topn(table orders order by orderId, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultipleOrderKeys() {
+    // test multiple order keys for input table
+    final String sql =
+        "select * from table(topn(table orders order by (orderId, productid), 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`, `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithComplexOrderBy() {
+    // test complex order-by clause for input table
+    final String sql =
+        "select * from table(topn(table orders order by (orderId desc, productid asc), 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID` DESC, `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithPartitionKeyAndOrderKey() {
+    // test partition by clause and order by clause for input table
+    final String sql =
+        "select * from table(topn(table orders partition by productid order by orderId, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithSubQuery() {
+    // test partition by clause and order by clause for subquery
+    final String sql =
+        "select * from table(topn(select * from Orders partition by productid "
+            + "order by orderId, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((SELECT *\n"
+        + "FROM `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultipleInputTables() {
+    final String sql = "select * from table(similarlity(table emp, table emp_b))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SIMILARLITY`((TABLE `EMP`), (TABLE `EMP_B`)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultipleInputTablesAndSubClauses() {
+    final String sql = "select * from table("
+        + "similarlity("
+        + "  table emp partition by deptno order by empno, "
+        + "  table emp_b partition by deptno order by empno))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SIMILARLITY`(((TABLE `EMP`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`), "
+        + "((TABLE `EMP_B`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`)))";
+    sql(sql).ok(expected);
+  }
+
   @Test void testIllegalCursors() {
     sql("select ^cursor^(select * from emps) from emps")
         .fails("CURSOR expression encountered in illegal context");
@@ -4584,6 +4673,40 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testMergeMismatchedParentheses() {
+    // Invalid; more '(' than ')'
+    final String sql1 = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) (values (1, 2^)^";
+    sql(sql1).fails("(?s)Encountered \"<EOF>\" at .*");
+
+    // Invalid; more ')' than '('
+    final String sql1b = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) values (1, 2)^)^";
+    sql(sql1b).fails("(?s)Encountered \"\\)\" at .*");
+
+    // As sql1, with extra ')', therefore valid
+    final String sql2 = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) (values (1, 2))";
+    final String expected = "MERGE INTO `EMPS` AS `E`\n"
+        + "USING `TEMPS` AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`A`, `B`) (VALUES (ROW(1, 2)))";
+    sql(sql2).ok(expected);
+
+    // As sql1, removing unmatched '(', therefore valid
+    final String sql3 = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) values (1, 2)";
+    sql(sql3).ok(expected);
+  }
+
   @Test void testBitStringNotImplemented() {
     // Bit-string is longer part of the SQL standard. We do not support it.
     sql("select (B^'1011'^ || 'foobar') from (values (true))")
@@ -4790,6 +4913,18 @@ public class SqlParserTest {
     // Wrong 'WHEN'
     sql("select case col1 ^when1^ then 'one' end from t")
         .fails("(?s).*when1.*");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4802">[CALCITE-4802]
+   * Babel parser doesn't parse IF(condition, then, else) statements </a>.
+   */
+  @Test void testIf() {
+    expr("if(true, 1, 0)")
+        .ok("`IF`(TRUE, 1, 0)");
+
+    sql("select 1 as if")
+        .ok("SELECT 1 AS `IF`");
   }
 
   @Test void testNullIf() {
@@ -8152,6 +8287,102 @@ public class SqlParserTest {
     sql(sql2).ok(expected2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5194">[CALCITE-5194]
+   * Cannot parse parenthesized UNION in FROM</a>. */
+  @Test void testParenthesizedUnionInFrom() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a)\n"
+        + "  union\n"
+        + "  (select y from b))";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testParenthesizedUnionAndJoinInFrom() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a) as a"
+        + "  cross join\n"
+        + "  (select x from a\n"
+        + "  union\n"
+        + "  select y from b) as b)";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`) AS `A`\n"
+        + "CROSS JOIN (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`) AS `B`";
+    sql(sql).ok(expected);
+  }
+
+  /** As {@link #testParenthesizedUnionAndJoinInFrom()}
+   * but the UNION is the first input to the JOIN. */
+  @Test void testParenthesizedUnionAndJoinInFrom2() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a\n"
+        + "  union\n"
+        + "  select y from b) as b\n"
+        + "  cross join\n"
+        + "  (select x from a) as a)";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`) AS `B`\n"
+        + "CROSS JOIN (SELECT `X`\n"
+        + "FROM `A`) AS `A`";
+    sql(sql).ok(expected);
+  }
+
+  /** As {@link #testParenthesizedUnionAndJoinInFrom2()}
+   * but INNER JOIN rather than CROSS JOIN. */
+  @Test void testParenthesizedUnionAndJoinInFrom3() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a\n"
+        + "  union\n"
+        + "  select y from b) as b\n"
+        + "  join\n"
+        + "  (select x from a) as a on b.x = a.x)";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`) AS `B`\n"
+        + "INNER JOIN (SELECT `X`\n"
+        + "FROM `A`) AS `A` ON (`B`.`X` = `A`.`X`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testParenthesizedUnion() {
+    final String sql = "(select x from a\n"
+        + "  union\n"
+        + "  select y from b)\n"
+        + "except\n"
+        + "(select z from c)";
+    final String expected = "((SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`)\n"
+        + "EXCEPT\n"
+        + "SELECT `Z`\n"
+        + "FROM `C`)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testFromExpr() {
     String sql0 = "select * from a cross join b";
     String sql1 = "select * from (a cross join b)";
@@ -8589,6 +8820,18 @@ public class SqlParserTest {
         + "PIVOT (sum(sal) AS sal FOR job IN ())";
     final String expected = "SELECT *\n"
         + "FROM `EMP` PIVOT (SUM(`SAL`) AS `SAL` FOR `JOB` IN ())";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4746">[CALCITE-4746]
+   * Pivots with pivotAgg without alias fail with Babel Parser Implementation</a>.*/
+  @Test void testPivotWithoutAlias() {
+    final String sql = "SELECT * FROM emp\n"
+        + "PIVOT (sum(sal) FOR job in ('CLERK'))";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP` PIVOT (SUM(`SAL`)"
+        + " FOR `JOB` IN ('CLERK'))";
     sql(sql).ok(expected);
   }
 

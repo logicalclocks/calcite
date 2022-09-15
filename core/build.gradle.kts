@@ -48,7 +48,9 @@ val testMysql by configurations.creating(integrationTestConfig)
 dependencies {
     api(project(":linq4j"))
 
-    api("com.esri.geometry:esri-geometry-api")
+    api("org.locationtech.jts:jts-core")
+    api("org.locationtech.jts.io:jts-io-common")
+    api("org.locationtech.proj4j:proj4j")
     api("com.fasterxml.jackson.core:jackson-annotations")
     api("com.google.errorprone:error_prone_annotations")
     api("com.google.guava:guava")
@@ -108,7 +110,7 @@ tasks.shadowJar {
         }
     }
     dependencies {
-        include(dependency("com.google.guava:guava"))
+        include(dependency("com.google.guava:guava:31.1-jre"))
         include(dependency("com.google.guava:failureaccess"))
     }
     relocate("com.google", "org.apache.calcite.shaded.com.google")
