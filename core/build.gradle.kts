@@ -110,7 +110,7 @@ tasks.shadowJar {
         }
     }
     dependencies {
-        include(dependency("com.google.guava:guava"))
+        include(dependency("com.google.guava:guava:31.1-jre"))
         include(dependency("com.google.guava:failureaccess"))
     }
     relocate("com.google", "org.apache.calcite.shaded.com.google")
