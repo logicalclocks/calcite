@@ -36,6 +36,10 @@ tasks.shadowJar {
     relocate("com.google", "org.apache.calcite.shaded.com.google")
 }
 
+signing {
+    setRequired(false)
+}
+
 tasks.jar {
     archiveClassifier.set("default")
     dependsOn(tasks.shadowJar)

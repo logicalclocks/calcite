@@ -16,6 +16,10 @@
  */
 import com.github.autostyle.gradle.AutostyleTask
 
+signing {
+    setRequired(false)
+}
+
 plugins {
     calcite.fmpp
     calcite.javacc
