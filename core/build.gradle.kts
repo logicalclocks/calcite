@@ -260,6 +260,10 @@ val annotationProcessorTest by tasks.registering(JavaCompile::class) {
     onlyIf { tasks.findByPath("compileTestJava")?.enabled != true }
 }
 
+signing {
+    setRequired(false)
+}
+
 ide {
     // generate annotation processed files on project import/sync.
     fun addSync(compile: TaskProvider<JavaCompile>) {

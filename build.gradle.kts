@@ -36,6 +36,7 @@ plugins {
     publishing
     // Verification
     checkstyle
+    signing
     calcite.buildext
     id("org.checkerframework") apply false
     id("com.github.autostyle")
