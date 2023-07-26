@@ -48,6 +48,26 @@ public enum JoinType implements Symbolizable {
   RIGHT,
 
   /**
+   * Inner ASOF join.
+   */
+  INNER_ASOF,
+
+  /**
+   * Left ASOF join.
+   */
+  LEFT_ASOF,
+
+  /**
+   * Right ASOF join.
+   */
+  RIGHT_ASOF,
+
+  /**
+   * Full ASOF join.
+   */
+  FULL_ASOF,
+
+  /**
    * Left semi join.
    *
    * <p>Not used by Calcite; only in Babel's Hive dialect.
