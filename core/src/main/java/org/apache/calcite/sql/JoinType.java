@@ -48,6 +48,20 @@ public enum JoinType implements Symbolizable {
   RIGHT,
 
   /**
+   * Left semi join.
+   *
+   * <p>Not used by Calcite; only in Babel's Hive dialect.
+   */
+  LEFT_SEMI_JOIN,
+
+  /**
+   * Comma join: the good old-fashioned SQL <code>FROM</code> clause,
+   * where table expressions are specified with commas between them, and
+   * join conditions are specified in the <code>WHERE</code> clause.
+   */
+  COMMA,
+
+  /**
    * Inner ASOF join.
    */
   INNER_ASOF,
@@ -65,21 +79,7 @@ public enum JoinType implements Symbolizable {
   /**
    * Full ASOF join.
    */
-  FULL_ASOF,
-
-  /**
-   * Left semi join.
-   *
-   * <p>Not used by Calcite; only in Babel's Hive dialect.
-   */
-  LEFT_SEMI_JOIN,
-
-  /**
-   * Comma join: the good old-fashioned SQL <code>FROM</code> clause,
-   * where table expressions are specified with commas between them, and
-   * join conditions are specified in the <code>WHERE</code> clause.
-   */
-  COMMA;
+  FULL_ASOF;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
