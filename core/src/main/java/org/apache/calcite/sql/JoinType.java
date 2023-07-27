@@ -59,7 +59,27 @@ public enum JoinType implements Symbolizable {
    * where table expressions are specified with commas between them, and
    * join conditions are specified in the <code>WHERE</code> clause.
    */
-  COMMA;
+  COMMA,
+
+  /**
+   * Inner ASOF join.
+   */
+  INNER_ASOF,
+
+  /**
+   * Left ASOF join.
+   */
+  LEFT_ASOF,
+
+  /**
+   * Right ASOF join.
+   */
+  RIGHT_ASOF,
+
+  /**
+   * Full ASOF join.
+   */
+  FULL_ASOF;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
